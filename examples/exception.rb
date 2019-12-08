@@ -38,4 +38,12 @@ begin
 rescue
 end
 
+safe_worker = Worker.new retry: 3, raise: false do
+  raise "doesn't matter"
+ensure
+  puts "I'm safe"
+end
+
+safe_worker.perform
+
 puts "ok"

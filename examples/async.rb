@@ -19,3 +19,16 @@ puts "random order putsing:"
   async_adder_puts.perform_async(i, 1)
 end
 async_adder_puts.join
+
+
+no_value = Worker.new do
+  sleep 0.1
+  1
+end
+
+begin
+  defer = no_value.perform_async
+  defer.value!
+rescue Worker::Defer::ValueError
+  puts "no value"
+end

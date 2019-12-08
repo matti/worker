@@ -3,6 +3,9 @@ class Worker
   end
 
   class Defer
+    class ValueError < StandardError
+    end
+
     def initialize(&block)
       @value = Queue.new
 
@@ -14,6 +17,14 @@ class Worker
     def value
       @value.pop
     end
+
+    def value!
+      if @value.length == 1
+        value
+      else
+        raise ValueError
+      end
+    end
   end
 
   def initialize(opts={}, &block)
@@ -24,9 +35,7 @@ class Worker
     @defers = Queue.new
 
     @retries = 0
-    @retry = opts.dig(:retry) || 0
-    @backoff = opts.dig(:backoff) || 0.1
-    @backoff_max = opts.dig(:backoff_max)
+    @opts = opts
     run!
   end
 
@@ -40,10 +49,18 @@ class Worker
       ret
     end
   rescue Exception => ex
-    raise ex if @retries == @retry
+    backoff = @opts.dig(:backoff) || 0.1
+    backoff_max = @opts.dig(:backoff_max)
+    retries_max = @opts.dig(:retry) || 0
+
+    if @retries == retries_max
+      @retries = 0
+      return if @opts.dig(:raise) == false
+      raise ex
+    end
     @retries += 1
-    sleeping = @retries * @backoff
-    sleeping = @backoff_max if @backoff_max && sleeping > @backoff_max
+    sleeping = @retries * backoff
+    sleeping = backoff_max if backoff_max && sleeping > backoff_max
 
     sleep sleeping
     retry
