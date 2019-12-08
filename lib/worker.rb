@@ -1,8 +1,13 @@
 class Worker
+  class Ctx
+  end
+
   def initialize(&block)
     @in = Queue.new
     @out = Queue.new
     @block = block
+    @ctx = Worker::Ctx.new
+
     run!
   end
 
@@ -19,7 +24,7 @@ class Worker
   def run!
     @thread = Thread.new do
       loop do
-        ret = @block.call @in.pop
+        ret = @ctx.instance_exec @in.pop, &@block
         @out.push ret
       rescue Exception => ex
         @out.push ex
