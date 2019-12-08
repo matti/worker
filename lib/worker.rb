@@ -16,13 +16,17 @@ class Worker
     end
   end
 
-  def initialize(&block)
+  def initialize(opts={}, &block)
     @in = Queue.new
     @out = Queue.new
     @block = block
     @ctx = Worker::Ctx.new
     @defers = Queue.new
 
+    @retries = 0
+    @retry = opts.dig(:retry) || 0
+    @backoff = opts.dig(:backoff) || 0.1
+    @backoff_max = opts.dig(:backoff_max)
     run!
   end
 
@@ -35,6 +39,14 @@ class Worker
     else
       ret
     end
+  rescue Exception => ex
+    raise ex if @retries == @retry
+    @retries += 1
+    sleeping = @retries * @backoff
+    sleeping = @backoff_max if @backoff_max && sleeping > @backoff_max
+
+    sleep sleeping
+    retry
   end
 
   def perform_async(*args)
