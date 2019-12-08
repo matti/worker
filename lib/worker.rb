@@ -13,6 +13,7 @@ class Worker
 
   def perform(*args)
     @in.push args
+
     ret = @out.pop
     if ret.is_a? Exception
       raise ret
@@ -24,7 +25,7 @@ class Worker
   def run!
     @thread = Thread.new do
       loop do
-        ret = @ctx.instance_exec @in.pop, &@block
+        ret = @ctx.instance_exec *@in.pop, &@block
         @out.push ret
       rescue Exception => ex
         @out.push ex
