@@ -16,3 +16,5 @@ end
 binary.perform 1, 2
 unary.perform 1
 unary_array.perform [1]
+
+puts "ok"
